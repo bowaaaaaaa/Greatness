@@ -1,10 +1,10 @@
 // Data storage (in a real app, this would be a backend database)
-let users = JSON.parse(localStorage.getItem('wasteManagementUsers')) || [];
-let wasteRecords = JSON.parse(localStorage.getItem('wasteRecords')) || [];
-let collectionRequests = JSON.parse(localStorage.getItem('collectionRequests')) || [];
-let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-let currentRate = 10; // KES per kg (default rate)
-let rewardPoints = JSON.parse(localStorage.getItem('rewardPoints')) || {};
+// let users = JSON.parse(localStorage.getItem('wasteManagementUsers')) || [];
+// let wasteRecords = JSON.parse(localStorage.getItem('wasteRecords')) || [];
+// let collectionRequests = JSON.parse(localStorage.getItem('collectionRequests')) || [];
+// let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+// let currentRate = 10; // KES per kg (default rate)
+// let rewardPoints = JSON.parse(localStorage.getItem('rewardPoints')) || {};
 
 // DOM Elements
 const loginBtn = document.getElementById('loginBtn');
@@ -21,7 +21,6 @@ const dashboardTabs = document.getElementById('dashboardTabs');
 const dashboardContent = document.getElementById('dashboardContent');
 const dashboardTitle = document.getElementById('dashboardTitle');
 const dashboardSubtitle = document.getElementById('dashboardSubtitle');
-const logoutBtn = document.getElementById('logoutBtn');
 
 // Statistics elements
 const usersCount = document.getElementById('usersCount');
@@ -29,9 +28,13 @@ const wasteCollected = document.getElementById('wasteCollected');
 const recyclingRate = document.getElementById('recyclingRate');
 const collectionRequestsCount = document.getElementById('collectionRequests');
 
-// Event Listeners
-loginBtn.addEventListener('click', () => showModal(loginModal));
-registerBtn.addEventListener('click', () => showModal(registerModal));
+if (loginBtn && registerBtn && loginModal && registerModal) {
+    loginBtn.addEventListener('click', () => showModal(loginModal));
+    registerBtn.addEventListener('click', () => showModal(registerModal));
+}
+
+generateTabs();
+showTabContent('overview');
 
 closeModalButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -52,101 +55,70 @@ switchToLogin.addEventListener('click', (e) => {
     loginModal.style.display = 'flex';
 });
 
-loginForm.addEventListener('submit', handleLogin);
-registerForm.addEventListener('submit', handleRegister);
-logoutBtn.addEventListener('click', logout);
+registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-// Close modal when clicking outside
+    const formData = new FormData(registerForm);
+    formData.append("registerForm", "1");
+
+    try {
+        const response = await fetch("auth.php", {
+            method: "POST",
+            body: formData
+        });
+
+        const text = (await response.text()).trim();
+        console.log("Response:", text);
+
+        if (text.toLowerCase().includes("successful")) {
+            alert("✅ " + text);
+            registerModal.style.display = "none";
+            registerForm.reset();
+            loginModal.style.display = "flex";
+        } else {
+            alert("❌ " + text);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An unexpected error occurred. Please try again.");
+    }
+});
+
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(loginForm);
+    formData.append("loginForm", "1");
+
+    try {
+        const response = await fetch("auth.php", {
+            method: "POST",
+            body: formData
+        });
+
+        const text = await response.text();
+        console.log("Login Response:", text);
+
+        if (text.trim() == "login successful") {
+            window.location.href = "dashboard.php";
+        } else {
+            alert("❌ " + text);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An unexpected error occurred. Please try again.");
+    }
+});
+
+
 window.addEventListener('click', (e) => {
     if (e.target === loginModal) loginModal.style.display = 'none';
     if (e.target === registerModal) registerModal.style.display = 'none';
 });
 
-// Initialize statistics
-updateStatistics();
 
-// Functions
 function showModal(modal) {
     modal.style.display = 'flex';
-}
-
-function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    const user = users.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        loginModal.style.display = 'none';
-        showDashboard();
-        updateStatistics();
-    } else {
-        alert('Invalid email or password');
-    }
-}
-
-function handleRegister(e) {
-    e.preventDefault();
-    const fullName = document.getElementById('fullName').value;
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const userType = document.getElementById('userType').value;
-    const location = document.getElementById('location').value;
-    
-    // Check if user already exists
-    if (users.find(u => u.email === email)) {
-        alert('User with this email already exists');
-        return;
-    }
-    
-    const newUser = {
-        id: Date.now().toString(),
-        name: fullName,
-        email: email,
-        password: password,
-        type: userType,
-        location: location,
-        registrationDate: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('wasteManagementUsers', JSON.stringify(users));
-    
-    // Initialize reward points for household users
-    if (userType === 'household') {
-        rewardPoints[newUser.id] = 0;
-        localStorage.setItem('rewardPoints', JSON.stringify(rewardPoints));
-    }
-    
-    alert('Registration successful! Please login.');
-    registerModal.style.display = 'none';
-    loginModal.style.display = 'flex';
-    updateStatistics();
-}
-
-function showDashboard() {
-    // Hide main content and show dashboard
-    document.querySelector('header').style.display = 'none';
-    document.querySelector('.hero').style.display = 'none';
-    document.querySelector('#about').style.display = 'none';
-    document.querySelector('#features').style.display = 'none';
-    document.querySelector('.stats').style.display = 'none';
-    document.querySelector('footer').style.display = 'none';
-    
-    dashboard.style.display = 'block';
-    
-    // Update dashboard title
-    dashboardTitle.textContent = `${currentUser.type.charAt(0).toUpperCase() + currentUser.type.slice(1)} Dashboard`;
-    dashboardSubtitle.textContent = `Welcome, ${currentUser.name}`;
-    
-    // Generate tabs based on user type
-    generateTabs();
-    
-    // Show default tab content
-    showTabContent('overview');
 }
 
 function generateTabs() {
@@ -161,7 +133,7 @@ function generateTabs() {
     // Role-specific tabs
     let roleTabs = [];
     
-    switch(currentUser.type) {
+    switch(accountType) {
         case 'admin':
             roleTabs = [
                 { id: 'wasteRecords', label: 'Waste Records' },
@@ -230,31 +202,31 @@ function showTabContent(tabId) {
             showProfile();
             break;
         case 'wasteRecords':
-            if (currentUser.type === 'admin') showWasteRecords();
+            if (accountType === 'admin') showWasteRecords();
             break;
         case 'collectionRequests':
-            if (currentUser.type === 'admin') showCollectionRequests();
+            if (accountType === 'admin') showCollectionRequests();
             break;
         case 'analytics':
-            if (currentUser.type === 'admin' || currentUser.type === 'recycler') showAnalytics();
+            if (accountType === 'admin' || accountType === 'recycler') showAnalytics();
             break;
         case 'settings':
-            if (currentUser.type === 'admin') showSettings();
+            if (accountType === 'admin') showSettings();
             break;
         case 'requestCollection':
-            if (currentUser.type === 'household' || currentUser.type === 'company') showRequestCollection();
+            if (accountType === 'household' || accountType === 'company') showRequestCollection();
             break;
         case 'myRequests':
-            if (currentUser.type === 'household' || currentUser.type === 'company') showMyRequests();
+            if (accountType === 'household' || accountType === 'company') showMyRequests();
             break;
         case 'rewards':
-            if (currentUser.type === 'household' || currentUser.type === 'company') showRewards();
+            if (accountType === 'household' || accountType === 'company') showRewards();
             break;
         case 'myCollections':
-            if (currentUser.type === 'collector') showMyCollections();
+            if (accountType === 'collector') showMyCollections();
             break;
         case 'availableRequests':
-            if (currentUser.type === 'collector') showAvailableRequests();
+            if (accountType === 'collector') showAvailableRequests();
             break;
         case 'wasteCollection':
             if (currentUser.type === 'recycler') showWasteCollection();
@@ -262,22 +234,37 @@ function showTabContent(tabId) {
     }
 }
 
-function showOverview() {
+async function fetchDashboardData() {
+    const res = await fetch('dashboardData.php');
+    const data = await res.json();
+
+    return data;
+}
+
+async function showOverview() {
+    const { currentUser, accountType, collectionRequests, wasteRecords, users } = await fetchDashboardData();
     let overviewHTML = '';
     
-    if (currentUser.type === 'household' || currentUser.type === 'company') {
-        const userRequests = collectionRequests.filter(r => r.userId === currentUser.id);
-        const pendingRequests = userRequests.filter(r => r.status === 'pending').length;
-        const completedRequests = userRequests.filter(r => r.status === 'completed').length;
+    if (accountType === 'household' || accountType === 'company') {
+        const response = await fetch('userRequests.php');
+        const data = await response.json();
+
+        if (data.error) {
+            alert('Error fetching requests: ' + data.error);
+            return;
+        }
+        const count = data.count || 0;
+        const pending = count.pending || 0;
+        const completed = count.completed || 0;
         
         overviewHTML = `
             <div class="cards">
                 <div class="card">
                     <h3>My Waste Management</h3>
-                    <p>Pending Requests: <strong>${pendingRequests}</strong></p>
-                    <p>Completed Collections: <strong>${completedRequests}</strong></p>
-                    <p>Total Waste Disposed: <strong>${calculateUserWaste()} kg</strong></p>
-                    <p>Reward Points: <strong>${rewardPoints[currentUser.id] || 0}</strong></p>
+                    <p>Pending Requests: <strong>${pending}</strong></p>
+                    <p>Completed Collections: <strong>${completed}</strong></p>
+                    <p>Total Waste Disposed: <strong>${completed} kg</strong></p>
+                    <p>Reward Points: <strong>${completed * 10 || 0}</strong></p>
                 </div>
                 <div class="card">
                     <h3>Quick Actions</h3>
@@ -290,18 +277,21 @@ function showOverview() {
                 </div>
             </div>
         `;
-    } else if (currentUser.type === 'collector') {
-        const myCollections = collectionRequests.filter(r => r.collectorId === currentUser.id);
-        const pendingCollections = myCollections.filter(r => r.status === 'in-progress').length;
-        const completedCollections = myCollections.filter(r => r.status === 'completed').length;
+    } else if (accountType === 'collector') {
+        const response = await fetch('userRequests.php');
+        const data = await response.json();
+
+        const count = data.count || 0;
+        const pending = count.pending || 0;
+        const completed = count.completed || 0;
         
         overviewHTML = `
             <div class="cards">
                 <div class="card">
                     <h3>My Collections</h3>
-                    <p>Pending Collections: <strong>${pendingCollections}</strong></p>
-                    <p>Completed Collections: <strong>${completedCollections}</strong></p>
-                    <p>Total Collections: <strong>${myCollections.length}</strong></p>
+                    <p>Pending Collections: <strong>${pending}</strong></p>
+                    <p>Completed Collections: <strong>${completed}</strong></p>
+                    <p>Total Collections: <strong>${completed}</strong></p>
                 </div>
                 <div class="card">
                     <h3>Quick Actions</h3>
@@ -310,7 +300,7 @@ function showOverview() {
                 </div>
             </div>
         `;
-    } else if (currentUser.type === 'recycler') {
+    } else if (accountType === 'recycler') {
         const collectedWaste = wasteRecords.filter(r => r.recyclerId === currentUser.id);
         const totalWaste = collectedWaste.reduce((sum, record) => sum + record.weight, 0);
         
@@ -328,14 +318,20 @@ function showOverview() {
                 </div>
             </div>
         `;
-    } else if (currentUser.type === 'admin') {
+    } else if (accountType === 'admin') {
+        const activeRequests = collectionRequests.filter(r => r.status === 'pending' || r.status === 'in-progress');
+        const totalWaste = wasteRecords.reduce((sum, r) => sum + r.weight, 0);
+        function calculateRecyclingRate() {            
+            return totalWaste > 0 ? Math.round((recycledWaste / totalWaste) * 100) : 0;
+        }
+
         overviewHTML = `
             <div class="cards">
                 <div class="card">
                     <h3>System Statistics</h3>
                     <p>Total Users: <strong>${users.length}</strong></p>
-                    <p>Active Collection Requests: <strong>${collectionRequests.filter(r => r.status === 'pending' || r.status === 'in-progress').length}</strong></p>
-                    <p>Total Waste Collected: <strong>${wasteRecords.reduce((sum, record) => sum + record.weight, 0)} kg</strong></p>
+                    <p>Active Collection Requests: <strong>${activeRequests.length}</strong></p>
+                    <p>Total Waste Collected: <strong>${totalWaste} kg</strong></p>
                     <p>Recycling Rate: <strong>${calculateRecyclingRate()}%</strong></p>
                 </div>
                 <div class="card">
@@ -351,97 +347,84 @@ function showOverview() {
     dashboardContent.innerHTML = overviewHTML;
 }
 
-function calculateUserWaste() {
-    const userRecords = wasteRecords.filter(r => r.userId === currentUser.id);
-    return userRecords.reduce((sum, record) => sum + record.weight, 0);
-}
+// function calculateUserWaste() {
+//     const userRecords = wasteRecords.filter(r => r.userId === currentUser.id);
+//     return userRecords.reduce((sum, record) => sum + record.weight, 0);
+// }
 
-function getRecentUserActivities() {
-    const userRequests = collectionRequests
-        .filter(r => r.userId === currentUser.id)
-        .sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate))
-        .slice(0, 5);
-    
+async function getRecentUserActivities() {
+    const response = await fetch('userRequests.php');
+    const data = await response.json();
+
+    const userRequests = data.requests || [];
     if (userRequests.length === 0) {
         return '<p>No recent activity</p>';
     }
+
+    const sorted = userRequests.sort((a, b) => new Date(b.collectionDate) - new Date(a.collectionDate));
     
+    const recent = sorted.slice(0, 3);
     return `
         <ul>
-            ${userRequests.map(request => `
-                <li>${new Date(request.requestDate).toLocaleDateString()} - Collection ${request.status} (${request.wasteType})</li>
-            `).join('')}
+            ${recent.map(request => `
+                <li>${new Date(request.collectionDate).toLocaleDateString()} - Collection ${request.status} (${request.wasteType || 'General Waste'})</li>
+            `).join('')
+            }
         </ul>
     `;
 }
 
-function calculateRecyclingRate() {
-    const totalWaste = wasteRecords.reduce((sum, record) => sum + record.weight, 0);
-    const recycledWaste = wasteRecords
-        .filter(r => r.status === 'recycled')
-        .reduce((sum, record) => sum + record.weight, 0);
-    
-    return totalWaste > 0 ? Math.round((recycledWaste / totalWaste) * 100) : 0;
-}
+async function showProfile() {
+    try {
+        const response = await fetch('userDetails.php');
+        const user = await response.json();
+        if (user.error) {
+            alert('Error fetching profile: ' + user.error);
+            return;
+        }
 
-function showProfile() {
     const profileHTML = `
         <div class="card">
             <h3>My Profile</h3>
             <div class="form-group">
                 <label>Name</label>
-                <p>${currentUser.name}</p>
+                <p>${user.full_name}</p>
             </div>
             <div class="form-group">
                 <label>Email</label>
-                <p>${currentUser.email}</p>
+                <p>${user.email}</p>
             </div>
             <div class="form-group">
                 <label>Account Type</label>
-                <p>${currentUser.type.charAt(0).toUpperCase() + currentUser.type.slice(1)}</p>
+                <p>${user.account_type}</p>
             </div>
             <div class="form-group">
                 <label>Location</label>
-                <p>${currentUser.location.charAt(0).toUpperCase() + currentUser.location.slice(1)}</p>
+                <p>${user.location}</p>
             </div>
             <div class="form-group">
                 <label>Registration Date</label>
-                <p>${new Date(currentUser.registrationDate).toLocaleDateString()}</p>
+                <p></p>
             </div>
         </div>
     `;
     
     dashboardContent.innerHTML = profileHTML;
+    } catch (error) {
+        console.error('Error:', error);
+    }
 }
 
-function showRequestCollection() {
+async function showRequestCollection() {
+    const { currentUser } = await fetchDashboardData();
+    
     const requestCollectionHTML = `
         <div class="card">
             <h3>Request Waste Collection</h3>
-            <form id="requestCollectionForm">
+            <form id="requestCollectionForm" method="post" action="requests.php">
                 <div class="form-group">
                     <label for="wasteType">Waste Type</label>
-                    <select id="wasteType" class="form-control" required>
-                        <option value="">Select Waste Type</option>
-                        <option value="plastic">Plastic</option>
-                        <option value="paper">Paper</option>
-                    </select>
-                </div>
-            </form>
-        </div>
-    `;
-    dashboardContent.innerHTML = requestCollectionHTML;
-}
-// Continue from the previous script.js content...
-
-function showRequestCollection() {
-    const requestCollectionHTML = `
-        <div class="card">
-            <h3>Request Waste Collection</h3>
-            <form id="requestCollectionForm">
-                <div class="form-group">
-                    <label for="wasteType">Waste Type</label>
-                    <select id="wasteType" class="form-control" required>
+                    <select id="wasteType" class="form-control" name="wasteType" required>
                         <option value="">Select Waste Type</option>
                         <option value="plastic">Plastic</option>
                         <option value="paper">Paper</option>
@@ -453,19 +436,19 @@ function showRequestCollection() {
                 </div>
                 <div class="form-group">
                     <label for="wasteWeight">Estimated Weight (kg)</label>
-                    <input type="number" id="wasteWeight" class="form-control" step="0.1" min="0" required>
+                    <input type="number" id="wasteWeight" class="form-control" name="weight" step="0.1" min="0" required>
                 </div>
                 <div class="form-group">
                     <label for="collectionAddress">Collection Address</label>
-                    <input type="text" id="collectionAddress" class="form-control" value="${currentUser.location}" required>
+                    <input type="text" id="collectionAddress" name="collectionAddress" class="form-control" value="${currentUser.location}" required>
                 </div>
                 <div class="form-group">
                     <label for="preferredDate">Preferred Collection Date</label>
-                    <input type="date" id="preferredDate" class="form-control" required>
+                    <input type="date" id="preferredDate" name="collectionDate" class="form-control" required>
                 </div>
                 <div class="form-group">
                     <label for="preferredTime">Preferred Time</label>
-                    <select id="preferredTime" class="form-control" required>
+                    <select id="preferredTime" name="preferredTime" class="form-control" required>
                         <option value="">Select Time</option>
                         <option value="morning">Morning (8AM - 12PM)</option>
                         <option value="afternoon">Afternoon (12PM - 4PM)</option>
@@ -474,11 +457,11 @@ function showRequestCollection() {
                 </div>
                 <div class="form-group">
                     <label for="specialInstructions">Special Instructions (Optional)</label>
-                    <textarea id="specialInstructions" class="form-control" placeholder="Any special instructions for the collector..."></textarea>
+                    <textarea id="specialInstructions" name="instruction" class="form-control" placeholder="Any special instructions for the collector..."></textarea>
                 </div>
                 <div class="form-group">
                     <label for="paymentMethod">Payment Method</label>
-                    <select id="paymentMethod" class="form-control" required>
+                    <select id="paymentMethod" name="paymentMethod" class="form-control" required>
                         <option value="">Select Payment Method</option>
                         <option value="mpesa">M-Pesa</option>
                         <option value="cash">Cash on Collection</option>
@@ -506,58 +489,58 @@ function showRequestCollection() {
     // Calculate cost when weight changes
     document.getElementById('wasteWeight').addEventListener('input', calculateCost);
     
-    document.getElementById('requestCollectionForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    // document.getElementById('requestCollectionForm').addEventListener('submit', function(e) {
+    //     e.preventDefault();
         
-        const wasteType = document.getElementById('wasteType').value;
-        const wasteWeight = parseFloat(document.getElementById('wasteWeight').value);
-        const collectionAddress = document.getElementById('collectionAddress').value;
-        const preferredDate = document.getElementById('preferredDate').value;
-        const preferredTime = document.getElementById('preferredTime').value;
-        const specialInstructions = document.getElementById('specialInstructions').value;
-        const paymentMethod = document.getElementById('paymentMethod').value;
+    //     const wasteType = document.getElementById('wasteType').value;
+    //     const wasteWeight = parseFloat(document.getElementById('wasteWeight').value);
+    //     const collectionAddress = document.getElementById('collectionAddress').value;
+    //     const preferredDate = document.getElementById('preferredDate').value;
+    //     const preferredTime = document.getElementById('preferredTime').value;
+    //     const specialInstructions = document.getElementById('specialInstructions').value;
+    //     const paymentMethod = document.getElementById('paymentMethod').value;
         
-        const newRequest = {
-            id: Date.now().toString(),
-            userId: currentUser.id,
-            userName: currentUser.name,
-            userType: currentUser.type,
-            userLocation: currentUser.location,
-            wasteType: wasteType,
-            wasteWeight: wasteWeight,
-            collectionAddress: collectionAddress,
-            preferredDate: preferredDate,
-            preferredTime: preferredTime,
-            specialInstructions: specialInstructions,
-            paymentMethod: paymentMethod,
-            status: 'pending',
-            requestDate: new Date().toISOString(),
-            estimatedCost: calculateTotalCost(wasteWeight)
-        };
+    //     const newRequest = {
+    //         id: Date.now().toString(),
+    //         userId: currentUser.id,
+    //         userName: currentUser.name,
+    //         userType: currentUser.type,
+    //         userLocation: currentUser.location,
+    //         wasteType: wasteType,
+    //         wasteWeight: wasteWeight,
+    //         collectionAddress: collectionAddress,
+    //         preferredDate: preferredDate,
+    //         preferredTime: preferredTime,
+    //         specialInstructions: specialInstructions,
+    //         paymentMethod: paymentMethod,
+    //         status: 'pending',
+    //         requestDate: new Date().toISOString(),
+    //         estimatedCost: calculateTotalCost(wasteWeight)
+    //     };
         
-        collectionRequests.push(newRequest);
-        localStorage.setItem('collectionRequests', JSON.stringify(collectionRequests));
+    //     collectionRequests.push(newRequest);
+    //     localStorage.setItem('collectionRequests', JSON.stringify(collectionRequests));
         
-        document.getElementById('requestResult').innerHTML = `
-            <div class="card" style="background-color: #e8f5e9;">
-                <h3>Request Submitted Successfully!</h3>
-                <p>Your waste collection request has been received.</p>
-                <p><strong>Request ID:</strong> ${newRequest.id}</p>
-                <p><strong>Waste Type:</strong> ${wasteType}</p>
-                <p><strong>Estimated Weight:</strong> ${wasteWeight} kg</p>
-                <p><strong>Collection Address:</strong> ${collectionAddress}</p>
-                <p><strong>Preferred Date:</strong> ${new Date(preferredDate).toLocaleDateString()}</p>
-                <p><strong>Total Cost:</strong> KES ${newRequest.estimatedCost}</p>
-                <p>You will be notified when a collector is assigned to your request.</p>
-            </div>
-        `;
+    //     document.getElementById('requestResult').innerHTML = `
+    //         <div class="card" style="background-color: #e8f5e9;">
+    //             <h3>Request Submitted Successfully!</h3>
+    //             <p>Your waste collection request has been received.</p>
+    //             <p><strong>Request ID:</strong> ${newRequest.id}</p>
+    //             <p><strong>Waste Type:</strong> ${wasteType}</p>
+    //             <p><strong>Estimated Weight:</strong> ${wasteWeight} kg</p>
+    //             <p><strong>Collection Address:</strong> ${collectionAddress}</p>
+    //             <p><strong>Preferred Date:</strong> ${new Date(preferredDate).toLocaleDateString()}</p>
+    //             <p><strong>Total Cost:</strong> KES ${newRequest.estimatedCost}</p>
+    //             <p>You will be notified when a collector is assigned to your request.</p>
+    //         </div>
+    //     `;
         
-        document.getElementById('requestCollectionForm').reset();
-        document.getElementById('costEstimate').style.display = 'none';
+    //     document.getElementById('requestCollectionForm').reset();
+    //     document.getElementById('costEstimate').style.display = 'none';
         
-        // Update statistics
-        updateStatistics();
-    });
+    //     // Update statistics
+    //     updateStatistics();
+    // });
 }
 
 function calculateCost() {
@@ -579,11 +562,11 @@ function calculateCost() {
     }
 }
 
-function calculateTotalCost(weight) {
-    const baseCost = weight * currentRate;
-    const serviceFee = baseCost * 0.1;
-    return baseCost + serviceFee;
-}
+// function calculateTotalCost(weight) {
+//     const baseCost = weight * currentRate;
+//     const serviceFee = baseCost * 0.1;
+//     return baseCost + serviceFee;
+// }
 
 function showMyRequests() {
     const userRequests = collectionRequests.filter(r => r.userId === currentUser.id);
@@ -809,9 +792,7 @@ function copyReferralCode() {
 }
 
 function showAvailableRequests() {
-    const availableRequests = collectionRequests.filter(r => 
-        r.status === 'pending' && r.userLocation === currentUser.location
-    );
+
     
     const availableRequestsHTML = `
         <div class="card">
@@ -977,63 +958,6 @@ function updateStatistics() {
     recyclingRate.textContent = `${recyclingRateValue}%`;
     
     collectionRequestsCount.textContent = collectionRequests.length;
-}
-
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    
-    // Show main content and hide dashboard
-    document.querySelector('header').style.display = 'block';
-    document.querySelector('.hero').style.display = 'block';
-    document.querySelector('#about').style.display = 'block';
-    document.querySelector('#features').style.display = 'block';
-    document.querySelector('.stats').style.display = 'block';
-    document.querySelector('footer').style.display = 'block';
-    
-    dashboard.style.display = 'none';
-}
-
-// Check if user is already logged in
-if (currentUser) {
-    showDashboard();
-}
-
-// Add CSS for smaller buttons
-const style = document.createElement('style');
-style.textContent = `
-    .btn-sm {
-        padding: 5px 10px;
-        font-size: 0.8rem;
-    }
-`;
-document.head.appendChild(style);
-// Add this to the existing script.js file
-
-// Fix logout function
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    
-    // Show all main content sections and hide dashboard
-    const sections = [
-        document.querySelector('header'),
-        document.querySelector('.hero'),
-        document.querySelector('#about'),
-        document.querySelector('#features'),
-        document.querySelector('.stats'),
-        document.querySelector('footer')
-    ];
-    
-    sections.forEach(section => {
-        if (section) section.style.display = 'block';
-    });
-    
-    dashboard.style.display = 'none';
-    
-    // Reset any forms if needed
-    if (loginForm) loginForm.reset();
-    if (registerForm) registerForm.reset();
 }
 
 // Enhanced analytics function
