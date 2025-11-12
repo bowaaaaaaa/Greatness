@@ -1,0 +1,219 @@
+<?php
+    session_start();
+    include 'connection.php';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Waste Management - Nairobi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <h1>Smart Waste Nairobi</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+            <div class="auth-buttons">
+                <button class="btn btn-secondary" id="loginBtn">Login</button>
+                <button class="btn btn-primary" id="registerBtn">Register</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="container">
+            <h2>Smart Waste Management for Nairobi</h2>
+            <p>A digital platform connecting households, waste collectors, and recyclers for efficient waste management in Nairobi's informal settlements and middle-class estates.</p>
+            <button class="btn btn-primary" id="learnMoreBtn">Learn More</button>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section" id="about">
+        <div class="container">
+            <h2 class="section-title">About Our Initiative</h2>
+            <div class="cards">
+                <div class="card">
+                    <div class="card-icon">♻️</div>
+                    <h3>Our Mission</h3>
+                    <p>To transform waste management in Nairobi through technology, creating a sustainable ecosystem that benefits all stakeholders.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🌍</div>
+                    <h3>Environmental Impact</h3>
+                    <p>Addressing Nairobi's waste management challenges through efficient collection, tracking, and recycling processes.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🤝</div>
+                    <h3>Community Engagement</h3>
+                    <p>Connecting households, collectors, and recyclers to create a sustainable waste management ecosystem.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section features" id="features">
+        <div class="container">
+            <h2 class="section-title">System Features</h2>
+            <div class="cards">
+                <div class="card">
+                    <h3>Real-time Tracking</h3>
+                    <p>Track waste from households to collection points and recycling facilities with full transparency.</p>
+                </div>
+                <div class="card">
+                    <h3>Smart Scheduling</h3>
+                    <p>Schedule waste pickups at your convenience with our easy-to-use platform.</p>
+                </div>
+                <div class="card">
+                    <h3>Incentive System</h3>
+                    <p>Earn rewards for consistent and proper waste disposal practices.</p>
+                </div>
+                <div class="card">
+                    <h3>Payment Integration</h3>
+                    <p>Seamlessly pay for waste collection services through the platform.</p>
+                </div>
+                <div class="card">
+                    <h3>Analytics Dashboard</h3>
+                    <p>Comprehensive reporting on waste collection and recycling metrics.</p>
+                </div>
+                <div class="card">
+                    <h3>Feedback Mechanism</h3>
+                    <p>Share your experience and help improve waste management services.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Section -->
+    <section class="section stats">
+        <div class="container">
+            <h2 class="section-title">Waste Management Impact</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3 id="usersCount">0</h3>
+                    <p>Registered Users</p>
+                </div>
+                <div class="stat-item">
+                    <h3 id="wasteCollected">0</h3>
+                    <p>Kg Waste Collected</p>
+                </div>
+                <div class="stat-item">
+                    <h3 id="recyclingRate">0%</h3>
+                    <p>Recycling Rate</p>
+                </div>
+                <div class="stat-item">
+                    <h3 id="collectionRequests">0</h3>
+                    <p>Collection Requests</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Login to Your Account</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="loginForm" method="post" action="auth.php">
+                <input type="hidden" name="loginForm" value="1">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" name="email" id="loginEmail" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" name="password" id="loginPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+            </form>
+            <p style="text-align: center; margin-top: 15px;">Don't have an account? <a href="#" id="switchToRegister">Register here</a></p>
+        </div>
+    </div>
+
+    <!-- Registration Modal -->
+    <div class="modal" id="registerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create an Account</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="registerForm" method="post" action="auth.php">
+                <input type="hidden" name="registerForm" value="1">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="userType">Account Type</label>
+                    <select id="userType" name="accountType" class="form-control" required>
+                        <option value="">Select your role</option>
+                        <option value="household">Household</option>
+                        <option value="company">Company</option>
+                        <option value="collector">Waste Collector</option>
+                        <option value="recycler">Recycler</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <select id="location" name="location" class="form-control" required>
+                        <option value="">Select your area</option>
+                        <option value="kibera">Kibera</option>
+                        <option value="mathare">Mathare</option>
+                        <option value="kawangware">Kawangware</option>
+                        <option value="westlands">Westlands</option>
+                        <option value="karen">Karen</option>
+                        <option value="langata">Langata</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+            </form>
+            <p style="text-align: center; margin-top: 15px;">Already have an account? <a href="#" id="switchToLogin">Login here</a></p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="container footer-content">
+            <h2>Smart Waste Management Nairobi</h2>
+            <p>Transforming waste management through technology and community engagement</p>
+            <div class="footer-links">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#features">Features</a>
+                <a href="#contact">Contact</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+            <p class="copyright">&copy; 2023 Smart Waste Nairobi. All rights reserved.</p>
+        </div>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
